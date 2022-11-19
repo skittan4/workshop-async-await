@@ -1,0 +1,19 @@
+{
+  "name": "workshop-async-await",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Learn while you do: Async functions",
+  "scripts": {
+    "server": "browser-sync start --server \"public\" --files \"public/**/*.js\" --no-open",
+    "start": "npm run server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "VI Company",
+  "license": "MIT",
+  "devDependencies": {
+    "browser-sync": "^2.26.7",
+    "eslint": "^6.8.0",
+    "eslint-config-vi": "^10.8.0"
+  }
+}
