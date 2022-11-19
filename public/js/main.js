@@ -13,17 +13,17 @@ const USE_CACHE = true;
 
 // TODO: refactor into something more elegant.
 // Luke, use the fetch!
-const getJSON = async (url, callback) => {
+const getJSON = async (url) => {
 	const isError = Math.floor(Math.random() * 10) === 0; // 10% error chance
 
 	if (isError) {
-		return callback(new Error('Network error!'));
+		throw new Error('Network error!');
 	}
-
+	
 	const fromCache = USE_CACHE && cache.get(url);
 
 	if (fromCache) {
-		return callback(null, fromCache);
+		return  fromCache;
 	}
 
 	const res = await fetch(url)
@@ -31,7 +31,7 @@ const getJSON = async (url, callback) => {
 	if (USE_CACHE) {
 		cache.set(url, resj);
 	}
-	callback(null, resj);
+	return resj
 		// .then((res) => {
 		// 	res.json()
 		// 		.then((json) => {
@@ -44,87 +44,156 @@ const getJSON = async (url, callback) => {
 		// });
 };
 
-const getRepos = (url, callback) => {
-	getJSON(url, (err, repos = []) => {
-		if (err) {
-			return callback(new Error('They took my repos. Dook err derr!'));
-		}
-
-		repos = repos
+const getRepos =async (url,) => {
+	try{
+	   let repos=await getJSON(url)
+	   repos = repos
 			.filter(r => r.fork === false) // No forks, no forks!
 			.sort(r => new Date(r.updated_at).getTime());
 
-		callback(null, repos);
-	});
+		return repos
+	}catch (err){
+		throw (new Error('They took my repos. Dook err derr!'));
+	}
+		
+	// 	(err, repos = []) => {
+	// 	if (err) {
+	// 		return callback(new Error('They took my repos. Dook err derr!'));
+	// 	}
+
+	// 	repos = repos
+	// 		.filter(r => r.fork === false) // No forks, no forks!
+	// 		.sort(r => new Date(r.updated_at).getTime());
+
+	// 	callback(null, repos);
+	// });
 };
 
 // IIFE to kick it all off
-(() => {
-	getJSON(`${API_URL}/orgs/vicompany`, (err, org) => {
+(async () => {
+	
+	
+	try {  
+		let data =await getJSON(`${API_URL}/orgs/vicompany`)
 		const el = document.querySelector('#org');
+		render(el, data, orgTpl);
 
-		if (err) {
-			return renderError(err);
-		}
+			const { repos_url: reposUrl } = data;
 
-		render(el, org, orgTpl);
-
-		const { repos_url: reposUrl } = org;
-
-		getRepos(reposUrl, (err, repos) => {
-			const reposEl = document.querySelector('#repos');
-
-			if (err) {
-				return renderError(err);
+			try{
+				let repos = await getRepos(reposUrl)
+				const reposEl = document.querySelector('#repos');
+				render(reposEl, repos, reposTpl)
 			}
+	     catch (err){ return renderError(err)}
+		// 	getRepos(reposUrl, (err, repos) => {
+		// 	const reposEl = document.querySelector('#repos');
 
-			render(reposEl, repos, reposTpl);
-		});
-	});
+		// 	if (err) {
+		// 		return renderError(err);
+		// 	}
+
+		// 	render(reposEl, repos, reposTpl);
+		// });
+	}
+	 catch (err) 
+	 {return renderError(err);}
+	// , (err, org) => {
+	// 	const el = document.querySelector('#org');
+
+	// 	if (err) {
+	// 		return renderError(err);
+	// 	}
+
+	// 	render(el, org, orgTpl);
+
+	// 	const { repos_url: reposUrl } = org;
+
+	// 	getRepos(reposUrl, (err, repos) => {
+	// 		const reposEl = document.querySelector('#repos');
+
+	// 		if (err) {
+	// 			return renderError(err);
+	// 		}
+
+	// 		render(reposEl, repos, reposTpl);
+	// 	});
+	// });
 
 	document
 		.querySelector('main')
-		.addEventListener('click', (e) => {
+		.addEventListener('click',async (e) => {
 			const { target } = e;
 			const modal = document.querySelector('#modal');
 
 			if (target.classList.contains('js-repo')) {
 				e.preventDefault();
 
-				getJSON(target.href, (err, repo) => {
-					if (err) {
-						return renderError(err);
-					}
+				try { 
+                let repo =await  getJSON(target.href)
+				render(modal, repo, repoTpl);
 
-					render(modal, repo, repoTpl);
+				 	modal.querySelector('dialog').showModal();
 
-					modal.querySelector('dialog').showModal();
-				});
+				}
+
+				catch (err){ return renderError(err)  }
+
+
+				// getJSON(target.href, (err, repo) => {
+				// 	if (err) {
+				// 		return renderError(err);
+				// 	}
+
+				// 	render(modal, repo, repoTpl);
+
+				// 	modal.querySelector('dialog').showModal();
+				// });
 			}
 
 			if (target.classList.contains('js-contributors')) {
 				e.preventDefault();
 
-				getJSON(target.href, (err, contributors = []) => {
-					if (err) {
-						return renderError(err);
-					}
+try {
+	let contributors=await getJSON(target.href)
+
+const data = {
+			contributors,
+			users: contributors.map(c => ({
+				url: c.url,
+				avatar: c.avatar_url,
+				login: c.login,
+			})),
+		}
+		render(modal, data, contributorsTpl);
+
+			modal.querySelector('dialog').showModal();
+}
+
+catch(err){
+	return renderError(err)
+}
+
+				// getJSON(target.href, (err, contributors = []) => {
+				// 	if (err) {
+				// 		return renderError(err);
+				// 	}
                     
-					// TODO: get user data from all contributers e.g. https://api.github.com/users/svensigmond
-					// and replace the 'users' array with this real data.
-					const data = {
-						contributors,
-						users: contributors.map(c => ({
-							url: c.url,
-							avatar: c.avatar_url,
-							login: c.login,
-						})),
-					};
+				// 	// TODO: get user data from all contributers e.g. https://api.github.com/users/svensigmond
+				// 	// and replace the 'users' array with this real data.
+				// 	const data = {
+				// 		contributors,
+				// 		users: contributors.map(c => ({
+				// 			url: c.url,
+				// 			avatar: c.avatar_url,
+				// 			login: c.login,
+				// 		})),
+				// 	};
 
-					render(modal, data, contributorsTpl);
+				// 	render(modal, data, contributorsTpl);
 
-					modal.querySelector('dialog').showModal();
-				});
+				// 	modal.querySelector('dialog').showModal();
+				// });
 			}
 
 			if (target.classList.contains('js-modal-close')) {
